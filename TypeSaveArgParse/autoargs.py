@@ -10,7 +10,7 @@ from inspect import signature
 from pathlib import Path
 from typing import get_args, get_origin
 
-from TypeSaveArgParse.utils import class_to_str, len_checker, translation_enum_to_str
+from TypeSaveArgParse.utils import cast_all, cast_if_enum, cast_if_list_to, class_to_str, len_checker, translation_enum_to_str
 
 config_help = "config file path"
 
@@ -20,6 +20,7 @@ class Class_to_ArgParse:
     @classmethod
     def get_opt(cls, parser: None | ArgumentParser = None, default_config=None):
         _checks = {}
+        _enum = {}
         if parser is None:
             p: ArgumentParser = ArgumentParser()
             p.add_argument("-config", "--config", default=default_config, type=str, help=config_help)
@@ -58,9 +59,10 @@ class Class_to_ArgParse:
                 continue
             # Handling :subclass of Enum
             elif isinstance(default, Enum) or issubclass(annotation, Enum):
+                _enum[name] = annotation
                 p.add_argument(key, default=default, choices=translation_enum_to_str(annotation))
             # Handling :list,tuple,set
-            elif get_origin(annotation) == list or get_origin(annotation) == tuple or get_origin(annotation) == set:
+            elif get_origin(annotation) in (list, tuple, set):
                 # Unpack Sequence[...] -> ...
                 org_annotation = annotation
                 annotations = []
@@ -86,17 +88,20 @@ class Class_to_ArgParse:
                 elif issubclass(annotation, Enum):
                     choices = [f for f in dir(annotation) if not f.startswith("__")]
                     p.add_argument(key, nargs="+", default=default, type=str, help="List of keys", choices=choices)
+                    _enum[name] = annotation
                 else:
                     p.add_argument(key, nargs="+", default=default, type=annotation, help="List of " + class_to_str(annotation))
             else:
                 p.add_argument(key, default=default, type=annotation)
         # if return_partial_parser:
         #    return p
-        return cls.from_kwargs(**p.parse_args().__dict__, _checks=_checks)
+        return cls.from_kwargs(**p.parse_args().__dict__, _checks=_checks, _enum=_enum)
 
     @classmethod
-    def from_kwargs(cls, _checks=None, **kwargs):
+    def from_kwargs(cls, _checks=None, _enum=None, **kwargs):
         # fetch the constructor's signature
+        if _enum is None:
+            _enum = {}
         if _checks is None:
             _checks = {}
         parameters = signature(cls).parameters
@@ -106,24 +111,11 @@ class Class_to_ArgParse:
         for name, val2 in kwargs.items():
             val = val2
             if name in cls_fields:
-                # Cast Str to Enum
-                if isinstance(parameters[name].default, Enum):
-                    try:
-                        val = parameters[name].annotation[val]
-                    except KeyError:
-                        print(f"Enum {type(parameters[name].default)} has no {val}")
-                        sys.exit(1)
-
-                # Cast list to Set/Tuple:
-                def cast_from_list(type_, val, name):
-                    if get_origin(parameters[name].annotation) == type_:
-                        return type_(val) if isinstance(val, list) else val
-                    return val
-
-                val = cast_from_list(set, val, name)
-                val = cast_from_list(tuple, val, name)
+                # recursive call on list HERE
+                val = cast_all(val, parameters[name], _enum.get(name, None))
                 native_args[name] = val
             else:
+                # unknown parameters
                 new_args[name] = val
             _checks.get(name, id)(val)
         ret = cls(**native_args)
