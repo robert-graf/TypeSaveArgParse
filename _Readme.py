@@ -1,10 +1,3 @@
-# TypeSaveArgParse
-
-This package makes a data class to a ArgParse with ConfigArgParse as a back bone to load ini or yaml files as config file.
-
-Basic Use
-
-```Python
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
@@ -47,27 +40,3 @@ base_cases = BASE_CASES.get_opt()
 
 # 3. You can save the current status of your config with save_config
 base_cases.save_config("myConfig.yaml")
-```
-
-The resulting config looks like:
-
-```yaml
-x: your api key now on GitHub
-y: -1000000
-# int_with_optional: None # int | None
-# p: None # pathlib.Path | None
-f: -0.3
-enum: ONE # <enum "Dummy_Enum"> Choices:["ONE", "SECOND", "THIRD"] - default [Dummy_Enum.ONE]
-# Note: Tuple with a fixed size of 2
-enum_tuple: [ONE, ONE] # <enum "Dummy_Enum"> Choices:["ONE", "SECOND", "THIRD"] 
-list_str: [Wam, Bam]
-# tuple_any_len: () # tuple[str, ...]
-list_int: [1, 2, 3]
-# set_s: set() # set[str]
-# set_i: set() # set[int]
-# Note: Tuple with a fixed size of 2
-tuple_with_fixed_lenght: [A, B]
-b: false # [True|False] - default [False]
-```
-
-Empty list/tuple/set and None can be set as a default and can be override. But you can not override values with empty list or None. 

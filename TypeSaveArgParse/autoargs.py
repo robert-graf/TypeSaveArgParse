@@ -139,7 +139,7 @@ class Class_to_ArgParse:
                 self.__dict__[key] = state[key]
         return state
 
-    def save_config(self, outfile, default_flow_style: None | bool = None):
+    def save_config(self, outfile: str | Path, default_flow_style: None | bool = None):
         import ruamel.yaml
         import ruamel.yaml as ryaml
         # import yaml
