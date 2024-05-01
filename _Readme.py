@@ -12,10 +12,10 @@ class Dummy_Enum(Enum):
     THIRD = auto()
 
 
-# 1.  Make a data class that inherits from TypeSaveArgParse.Class_to_ArgParse
+# 1.  Make a data class that inherits from TypeSaveArgParse.Class_to_ArgParse
 @dataclass
 class BASE_CASES(Class_to_ArgParse):
-    x: str = "your api key now on GitHub"
+    x: str = "Your API key now on GitHub"
     y: int = -1000000
     f: float = -0.3
     int_with_optional: int | None = None
@@ -31,12 +31,12 @@ class BASE_CASES(Class_to_ArgParse):
     b: bool = False
 
 
-# 2. Call the get_opt method to start ArgParse and get the filled out Object
+# 2. Call the get_opt method to start ArgParse and get them filled out object.
 
 base_cases = BASE_CASES.get_opt()
 
 # With -h you will see all options
-# With --config [PATH-TO-CONFIG] you can add a Config-file that overrides default but not set arguments. (For more info see the configargparse package)
+# With --config [PATH-TO-CONFIG], you can add a Config-file that overrides default but does not set arguments. (For more info, see the configargparse package)
 
 # 3. You can save the current status of your config with save_config
 base_cases.save_config("myConfig.yaml")
