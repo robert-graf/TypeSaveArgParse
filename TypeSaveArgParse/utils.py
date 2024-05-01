@@ -2,8 +2,8 @@ import argparse
 import sys
 import types
 from enum import Enum
-from inspect import Parameter, signature
-from typing import Type, get_args, get_origin
+from inspect import Parameter
+from typing import get_args, get_origin
 
 
 def translation_enum_to_str(enum: type[Enum]) -> list[str]:

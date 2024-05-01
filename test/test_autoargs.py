@@ -2,7 +2,6 @@
 # coverage run -m unittest
 # coverage report
 # coverage html
-import argparse
 import random
 import sys
 import unittest
@@ -11,6 +10,8 @@ from enum import Enum, auto
 from pathlib import Path
 from types import NoneType
 from unittest.mock import patch
+
+import configargparse as argparse
 
 sys.path.append(str(Path(__file__).parent.parent.parent / "TypeSaveArgParse"))
 
@@ -46,7 +47,7 @@ class TUP_CASES(Class_to_ArgParse):
 class Dummy_Enum(Enum):
     ONE = auto()
     SECOND = auto()
-    THIRDs = auto()
+    THIRD = auto()
 
 
 @dataclass
@@ -78,7 +79,7 @@ def fetch_exit(args: list | None = None, fun=lambda: BASE_CASES().get_opt()):
 
 
 # https://docs.python.org/dev/library/argparse.html#sub-commands
-class Test_bids_file(unittest.TestCase):
+class Test_autoargs(unittest.TestCase):
     def test_native(self):
         with patch("sys.argv", [__file__]):
             opt = BASE_CASES().get_opt()
@@ -166,9 +167,9 @@ class Test_bids_file(unittest.TestCase):
         with patch("sys.argv", [__file__, "--enu", Dummy_Enum.ONE.name]):
             opt = ENUM_CASES().get_opt()
             assert_(opt.enu, Dummy_Enum.ONE, Dummy_Enum)
-        with patch("sys.argv", [__file__, "--enu", Dummy_Enum.THIRDs.name]):
+        with patch("sys.argv", [__file__, "--enu", Dummy_Enum.THIRD.name]):
             opt = ENUM_CASES().get_opt()
-            assert_(opt.enu, Dummy_Enum.THIRDs, Dummy_Enum)
+            assert_(opt.enu, Dummy_Enum.THIRD, Dummy_Enum)
         with patch("sys.argv", [__file__, "--enu", Dummy_Enum.SECOND.name]):
             opt = ENUM_CASES().get_opt()
             assert_(opt.enu, Dummy_Enum.SECOND, Dummy_Enum)
@@ -178,9 +179,9 @@ class Test_bids_file(unittest.TestCase):
         with patch("sys.argv", [__file__, "--enu_list2", Dummy_Enum.SECOND.name, Dummy_Enum.ONE.name]):
             opt = ENUM_CASES().get_opt()
             assert_(opt.enu_list2, [Dummy_Enum.SECOND, Dummy_Enum.ONE], list)
-        with patch("sys.argv", [__file__, "--enu_list2", Dummy_Enum.THIRDs.name]):
+        with patch("sys.argv", [__file__, "--enu_list2", Dummy_Enum.THIRD.name]):
             opt = ENUM_CASES().get_opt()
-            assert_(opt.enu_list2, [Dummy_Enum.THIRDs], list)
+            assert_(opt.enu_list2, [Dummy_Enum.THIRD], list)
 
     def test_false_enum(self):
         def lam():
@@ -194,10 +195,8 @@ class Test_bids_file(unittest.TestCase):
         fetch_exit([__file__, "--enu", Dummy_Enum.SECOND.name, Dummy_Enum.ONE.name], lam)
 
 
-# Save/Load
+# Save/Load Tests
 # Sub-Objects
-# Json-support
-# yaml support
 # list
 # optional list
 

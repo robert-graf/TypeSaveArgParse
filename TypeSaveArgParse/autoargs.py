@@ -1,14 +1,14 @@
-import argparse
 import dataclasses
 import sys
 import types
-from argparse import ArgumentParser
 from dataclasses import Field, asdict, dataclass, field
 from enum import Enum
 from functools import partial
 from inspect import signature
 from pathlib import Path
 from typing import get_args, get_origin
+
+from configargparse import ArgumentParser
 
 from TypeSaveArgParse.utils import cast_all, cast_if_enum, cast_if_list_to, class_to_str, len_checker, translation_enum_to_str
 
@@ -23,7 +23,7 @@ class Class_to_ArgParse:
         _enum = {}
         if parser is None:
             p: ArgumentParser = ArgumentParser()
-            p.add_argument("-config", "--config", default=default_config, type=str, help=config_help)
+            p.add_argument("-config", "--config", is_config_file_arg=True, default=default_config, type=str, help=config_help)
         else:
             p = parser
 
@@ -95,7 +95,9 @@ class Class_to_ArgParse:
                 p.add_argument(key, default=default, type=annotation)
         # if return_partial_parser:
         #    return p
-        return cls.from_kwargs(**p.parse_args().__dict__, _checks=_checks, _enum=_enum)
+
+        out = cls.from_kwargs(**p.parse_args().__dict__, _checks=_checks, _enum=_enum)
+        return out
 
     @classmethod
     def from_kwargs(cls, _checks=None, _enum=None, **kwargs):
@@ -125,7 +127,7 @@ class Class_to_ArgParse:
         return ret
 
     def __getstate__(self):
-        """Replace fields, so that they can be pickeled"""
+        """Replace fields, so that they can be pickled"""
         state = self.__dict__.copy()
         for key, value in state.items():
             if isinstance(value, Field):
@@ -136,3 +138,133 @@ class Class_to_ArgParse:
                     state[key] = value.default
                 self.__dict__[key] = state[key]
         return state
+
+    def save_config(self, outfile, default_flow_style: None | bool = None):
+        import ruamel.yaml
+        import ruamel.yaml as ryaml
+        # import yaml
+
+        with open(outfile, "w") as out_file_stream:
+            y = ryaml.YAML()  # typ="safe", pure=True
+            y.default_flow_style = default_flow_style
+            data = ruamel.yaml.CommentedMap()
+            start_comment = ""
+            parameters = signature(self.__class__).parameters
+            cls_fields = sorted(set(parameters))
+            pref = None
+            for k, v in asdict(self).items():
+                if k.startswith("_"):
+                    continue
+                if v is None:
+                    att = ""
+                    try:
+                        att = str(getattr(self, k))
+                    except Exception:
+                        pass
+                    s = f"{k}: {att} # {parameters[k].annotation}\n"
+                    if pref is None:
+                        start_comment += s
+                    else:
+                        data.yaml_set_comment_before_after_key(pref, before=s, indent=0)
+                    continue
+                if isinstance(v, (list, set, tuple)) and len(v) == 0:
+                    att = ""
+                    try:
+                        att = str(getattr(self, k))
+                    except Exception:
+                        pass
+
+                    s = f"{k}: {att} # {parameters[k].annotation}\n"
+                    if pref is None:
+                        start_comment += s
+                    else:
+                        data.yaml_set_comment_before_after_key(pref, before=s, indent=0)
+
+                    continue
+                if isinstance(v, (list, set, tuple)):
+
+                    def enum_to_str(i):
+                        if isinstance(i, Enum):
+                            return i.name
+                        return i
+
+                    v = [enum_to_str(i) for i in v]  # noqa: PLW2901
+                if isinstance(v, Enum):
+                    v = v.name  # noqa: PLW2901
+                elif isinstance(v, Path):
+                    v = str(v)  # noqa: PLW2901
+                elif isinstance(v, set):
+                    v = list(v)  # noqa: PLW2901
+                pref = k
+                data[k] = v
+            # fetch the constructor's signature
+            if len(start_comment) != 0:
+                data.yaml_set_start_comment(start_comment)
+
+            # split the kwargs into native ones and new ones
+            for name in cls_fields:
+                can_be_none = False
+                default = parameters[name].default
+                default = "" if str(default) == "<factory>" else f"- default [{default}]"
+                annotation = parameters[name].annotation
+
+                # Handling :A |B |...| None (None means Optional argument)
+                annotations = []
+                if get_origin(annotation) == types.UnionType:
+                    for i in get_args(annotation):
+                        if i == types.NoneType:
+                            can_be_none = True
+                        else:
+                            annotations.append(i)
+                            annotation = i
+                if len(annotations) > 1:
+                    continue
+                del annotations
+                # Handling :bool = [True | False]
+                if annotation == bool:
+                    data.yaml_add_eol_comment(f"[True|False] {default}", name)
+
+                # Handling :subclass of Enum
+                elif isinstance(default, Enum) or issubclass(annotation, Enum):
+                    s = f"{annotation} Choices:{translation_enum_to_str(annotation)} {default}"
+                    data.yaml_add_eol_comment(s, name)
+                ## Handling :list,tuple,set
+                elif get_origin(annotation) in (list, tuple, set):
+                    # Unpack Sequence[...] -> ...
+                    org_annotation = annotation
+                    annotations = []
+                    had_ellipsis = False
+                    for i in get_args(annotation):
+                        if i == types.NoneType:
+                            default = None
+                        elif i == Ellipsis:
+                            had_ellipsis = True
+                        else:
+                            annotations.append(i)
+                            annotation = i
+                    num_ann = len(annotations)
+                    if get_origin(org_annotation) == tuple and not had_ellipsis:
+                        s = f"Note: Tuple with a fixed size of {num_ann}"
+                        data.yaml_set_comment_before_after_key(name, before=s)
+
+                    if issubclass(annotation, Enum):
+                        s = f"{annotation} Choices:{translation_enum_to_str(annotation)} {default}"
+                        data.yaml_add_eol_comment(s, name)
+            y.dump(data, out_file_stream)
+        # Could not find to use "" for strings instead of ''.
+        # So we have this solution
+        # Thanks I hate it. (pyYaml need "" or it would cas 'x' to "'x'" instead of "x")
+        with open(outfile) as out_file_stream:
+            data = out_file_stream.read()
+        with open(outfile, "w") as out_file_stream:
+            out_file_stream.write(data.replace("'", '"'))
+
+
+# data = ruamel.yaml.round_trip_load(outfile)
+
+# data["test1"].yaml_set_start_comment("before test2", indent=2)
+# data["test1"]["test2"].yaml_set_start_comment("after test2", indent=4)
+# ruamel.yaml.round_trip_dump(data, sys.stdout)
+
+
+# ryaml.safe_dump(asdict(self), outfile, default_flow_style=default_flow_style, sort_keys=False)

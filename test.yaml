@@ -1,0 +1,14 @@
+x: "237"
+y: -606
+f: 0.0842103254744091
+enum: SECOND  # <enum "Dummy_Enum"> Choices:["ONE", "SECOND", "THIRD"] - default [Dummy_Enum.ONE]
+# Note: Tuple with a fixed size of 2
+enum_tuple: [THIRD, ONE] # <enum "Dummy_Enum"> Choices:["ONE", "SECOND", "THIRD"] 
+# p: None # pathlib.Path | None
+z: 99999
+l_s: [Buy, more, Bees]
+# tup: () # tuple[str, ...]
+l_i: [-1, -1, -4, -9]
+set_s: ["1", "2"]
+set_i: [1, 5]
+b: true  # [True|False] - default [False]

@@ -11,6 +11,9 @@ packages = [{ include = "TypeSaveArgParse" }]
 [tool.poetry.dependencies]
 python = "^3.10 || ^3.11 || ^3.12"
 pathlib = "*"
+ConfigArgParse = "*"
+PyYAML = "*"
+ruamel = "*"
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.4"
 pre-commit = "*"
