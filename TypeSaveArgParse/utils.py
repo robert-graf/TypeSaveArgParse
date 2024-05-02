@@ -48,7 +48,7 @@ def cast_if_enum(val, parameter: types.GenericAlias, enum: None | type):
     return val
 
 
-def extract_sub_annotation(annotation: types.GenericAlias):
+def extract_sub_annotation(annotation):
     annotations = []
     had_ellipsis = False
     has_optional = False
