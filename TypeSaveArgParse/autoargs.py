@@ -11,6 +11,11 @@ from typing import get_args, get_origin
 import ruamel.yaml
 from configargparse import ArgumentParser
 
+try:
+    from docstring_parser import parse as doc_parse
+except Exception:
+    doc_parse = None
+
 from TypeSaveArgParse.utils import (
     cast_all,
     cast_if_enum,
@@ -33,6 +38,7 @@ def data_class_to_arg_parse(
     _enum=None,
     _loop_detection=None,
     _class_mapping=None,
+    _help=None,
 ):
     """
     Converts a data class into ArgumentParser arguments.
@@ -50,6 +56,9 @@ def data_class_to_arg_parse(
     Returns:
         ArgumentParser, dict: The ArgumentParser instance with added arguments, and a dictionary mapping class names to classes.
     """
+    if _help is None:
+        _help = {}
+
     # Default values
     if _class_mapping is None:
         _class_mapping = {}
@@ -64,7 +73,13 @@ def data_class_to_arg_parse(
         p.add_argument("-config", "--config", is_config_file_arg=True, default=default_config, type=str, help=config_help)
     else:
         p = parser
-
+    if doc_parse is not None:
+        doc_str = doc_parse(cls.__doc__)
+        st = doc_str.long_description
+        p.add_help(st) if st is not None else None  # type: ignore
+        for a in doc_str.params:
+            _help[_addendum + a.arg_name] = a.description
+        print(_help)
     # fetch the constructor's signature
     parameters = signature(cls).parameters
     cls_fields = sorted(set(parameters))
@@ -89,12 +104,12 @@ def data_class_to_arg_parse(
         del annotations
         # Handling :bool = [True | False]
         if annotation == bool:
-            p.add_argument(key, action="store_false" if default else "store_true", default=default)
+            p.add_argument(key, action="store_false" if default else "store_true", default=default, help=_help.get(dict_name, None))
             continue
         # Handling :subclass of Enum
         elif isinstance(default, Enum) or issubclass(annotation, Enum):
             _enum[dict_name] = annotation
-            p.add_argument(key, default=default, choices=translation_enum_to_str(annotation))
+            p.add_argument(key, default=default, choices=translation_enum_to_str(annotation), help=_help.get(dict_name, None))
         # Handling :list,tuple,set
         elif get_origin(annotation) in (list, tuple, set):
             # Unpack Sequence[...] -> ...
@@ -109,10 +124,12 @@ def data_class_to_arg_parse(
                 raise NotImplementedError("Non uniform sequence", annotations)
             elif issubclass(annotation, Enum):  # List of Enums
                 choices = [f for f in dir(annotation) if not f.startswith("__")]
-                p.add_argument(key, nargs="+", default=default, type=str, help="List of keys", choices=choices)
+                p.add_argument(key, nargs="+", default=default, type=str, help=_help.get(dict_name, "List of keys"), choices=choices)
                 _enum[dict_name] = annotation
             else:  # All other Lists
-                p.add_argument(key, nargs="+", default=default, type=annotation, help="List of " + class_to_str(annotation))
+                p.add_argument(
+                    key, nargs="+", default=default, type=annotation, help=_help.get(dict_name, "List of " + class_to_str(annotation))
+                )
         elif dataclasses.is_dataclass(annotation):
             if annotation in _loop_detection:
                 raise ValueError("RECURSIVE DATACLASS", annotation)
@@ -127,10 +144,11 @@ def data_class_to_arg_parse(
                 _enum=_enum,
                 _loop_detection=_loop_detection,
                 _class_mapping=_class_mapping,
+                _help=_help,
             )
         else:
             # Rest like int,float,str,Path
-            p.add_argument(key, default=default, type=annotation)
+            p.add_argument(key, default=default, type=annotation, help=_help.get(dict_name, None))
     return p, _class_mapping
 
 

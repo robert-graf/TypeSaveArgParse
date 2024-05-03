@@ -14,6 +14,7 @@ pathlib = "*"
 ConfigArgParse = "*"
 PyYAML = "*"
 ruamel = "*"
+docstring_parser = "*"
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.4"
 pre-commit = "*"

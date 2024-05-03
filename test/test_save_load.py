@@ -66,7 +66,7 @@ class Test_save_load(unittest.TestCase):
         )
         org.save_config(file)
         with patch("sys.argv", [__file__, "--config", str(file)]):
-            opt = BASE_CASES().get_opt()
+            opt = BASE_CASES.get_opt()
         assert opt == org, (opt, org)
 
     def test_native2(self):
@@ -75,7 +75,7 @@ class Test_save_load(unittest.TestCase):
             org = BASE_CASES()
             org.save_config(file)
             with patch("sys.argv", [__file__, "--config", str(file)]):
-                opt = BASE_CASES().get_opt()
+                opt = BASE_CASES.get_opt()
             assert opt == org, (opt, org)
 
 
