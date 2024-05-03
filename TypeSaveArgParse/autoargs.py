@@ -79,7 +79,7 @@ def data_class_to_arg_parse(
         p.add_help(st) if st is not None else None  # type: ignore
         for a in doc_str.params:
             _help[_addendum + a.arg_name] = a.description
-        print(_help)
+        # print(_help)
     # fetch the constructor's signature
     parameters = signature(cls).parameters
     cls_fields = sorted(set(parameters))
