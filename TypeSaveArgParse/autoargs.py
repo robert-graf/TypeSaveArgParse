@@ -1,10 +1,10 @@
 import dataclasses
-import sys
 import types
-from dataclasses import Field, asdict, dataclass, field
+from dataclasses import Field, asdict, dataclass
 from enum import Enum
 from functools import partial
 from inspect import signature
+from io import StringIO
 from pathlib import Path
 from typing import get_args, get_origin
 
@@ -18,9 +18,8 @@ except Exception:
 
 from TypeSaveArgParse.utils import (
     cast_all,
-    cast_if_enum,
-    cast_if_list_to,
     class_to_str,
+    enum_to_str,
     extract_sub_annotation,
     len_checker,
     translation_enum_to_str,
@@ -43,22 +42,29 @@ def data_class_to_arg_parse(
     """
     Converts a data class into ArgumentParser arguments.
 
+    This function traverses the fields of a given data class, generating corresponding command-line arguments using
+    ArgumentParser/ConfigArgumentParser. It automatically infers argument types and default values from
+    the data class annotations and default values. Additionally, it handles more complex types such as enums, lists,
+    tuples, sets, and nested data classes.
+
     Args:
-        cls: The data class to convert into ArgumentParser arguments.
-        parser (ArgumentParser or None): An existing ArgumentParser instance. If None, a new ArgumentParser will be created.
-        default_config: Default configuration file.
+        cls (Type): The data class to convert into ArgumentParser arguments.
+        parser (Optional[ArgumentParser]): An existing ArgumentParser instance. If None, a new ArgumentParser will be created.
+        default_config (Optional[str]): Default configuration file.
         _addendum (str): A string to prepend to each argument's name.
-        _checks: Internal parameter for checking arguments.
-        _enum: Internal parameter for handling Enum types.
-        _loop_detection: Internal parameter for detecting recursive data classes.
-        _class_mapping: Internal parameter for mapping class names.
+        _checks (Optional[Dict[str, partial]]): Internal parameter for checking arguments.
+        _enum (Optional[Dict[str, Type[Enum]]]): Internal parameter for handling Enum types.
+        _loop_detection (Optional[list]): Internal parameter for detecting recursive data classes.
+        _class_mapping (Optional[Dict[str, Type]]): Internal parameter for mapping class names.
+        _help (Optional[Dict[str, str]]): Optional help strings for arguments.
 
     Returns:
-        ArgumentParser, dict: The ArgumentParser instance with added arguments, and a dictionary mapping class names to classes.
+        Tuple[ArgumentParser, Dict[str, Type]]: The ArgumentParser instance with added arguments,
+        and a dictionary mapping class names to classes.
     """
+    ### Defaults ###
     if _help is None:
         _help = {}
-
     # Default values
     if _class_mapping is None:
         _class_mapping = {}
@@ -67,24 +73,26 @@ def data_class_to_arg_parse(
         _enum = {}
     if _checks is None:
         _checks = {}
+    ### add config option ###
     if parser is None:
         # extend existing arg_parsers
         p: ArgumentParser = ArgumentParser()
         p.add_argument("-config", "--config", is_config_file_arg=True, default=default_config, type=str, help=config_help)
     else:
         p = parser
+    ### Optional: help ###
     if doc_parse is not None:
         doc_str = doc_parse(cls.__doc__)
         st = doc_str.long_description
         p.add_help(st) if st is not None else None  # type: ignore
         for a in doc_str.params:
             _help[_addendum + a.arg_name] = a.description
-        # print(_help)
-    # fetch the constructor's signature
+
+    ### fetch the constructor's signature ##
     parameters = signature(cls).parameters
     cls_fields = sorted(set(parameters))
 
-    # split the kwargs into native ones and new ones
+    ### split the kwargs into native ones and new ones ###
     for name in cls_fields:
         dict_name = _addendum + name
         key = "--" + _addendum + name
@@ -100,7 +108,7 @@ def data_class_to_arg_parse(
                     annotations.append(i)
                     annotation = i
         if len(set(annotations)) > 1:
-            raise NotImplementedError("UnionType", annotations)  # TODO
+            raise NotImplementedError("UnionType", annotations)  # TODO Default to the first option that is not None?
         del annotations
         # Handling :bool = [True | False]
         if annotation == bool:
@@ -153,6 +161,18 @@ def data_class_to_arg_parse(
 
 
 def convert_obj_to_yaml(self, data: ruamel.yaml.CommentedMap, _addendum: str = ""):
+    """
+    Convert an object to YAML representation recursively.
+
+    This function traverses the attributes of the given object, converting them to YAML representation and adding them
+    to the provided CommentedMap recursively. It handles special cases such as None values, empty lists, sets, and tuples,
+    enums, Path objects, and nested data classes.
+
+    Args:
+        self: The object to convert to YAML.
+        data (ruamel.yaml.CommentedMap): The CommentedMap where YAML data will be stored.
+        _addendum (str): A string to prepend to each YAML key.
+    """
     parameters = signature(self.__class__).parameters
     pref = None
     for k, v in asdict(self).items():
@@ -162,39 +182,48 @@ def convert_obj_to_yaml(self, data: ruamel.yaml.CommentedMap, _addendum: str = "
         if k.startswith("_"):
             continue
         if v is None:
+            # Add None value with comment indicating its type
             s = f"{k_full}: {att!s} # {parameters[k].annotation}\n"
             data.yaml_set_comment_before_after_key(pref, before=s, indent=0)
             continue
         if isinstance(v, (list, set, tuple)) and len(v) == 0:
+            # Add empty list, set, or tuple with comment indicating its type
             s = f"{k_full}: {att!s} # {parameters[k].annotation}\n"
             data.yaml_set_comment_before_after_key(pref, before=s, indent=0)
             continue
         if isinstance(v, (list, set, tuple)):
-
-            def enum_to_str(i):
-                if isinstance(i, Enum):
-                    return i.name
-                return i
-
+            # Convert elements of list, set, or tuple if necessary
             v = [enum_to_str(i) for i in v]  # noqa: PLW2901
         if isinstance(v, Enum):
+            # Convert Enum to its name
             v = v.name  # noqa: PLW2901
         elif isinstance(v, Path):
+            # Convert Path object to string
             v = str(v)  # noqa: PLW2901
         elif isinstance(v, set):
+            # Convert set to list
             v = list(v)  # noqa: PLW2901
         elif dataclasses.is_dataclass(att):
+            # Recursively convert nested data class
             convert_obj_to_yaml(att, data, _addendum=k_full + ".")
-            # TODO Recursive printing
             continue
         pref = k_full
         data[k_full] = v
-        # fetch the constructor's signature
-        # if len(start_comment) != 0:
-        #    data.yaml_set_start_comment(start_comment)
 
 
 def add_comments_to_yaml(cls, data: ruamel.yaml.CommentedMap, _addendum: str = "", _loop_detection=None):
+    """
+    Add comments to YAML representation recursively.
+
+    This function traverses the fields of a given class, adding comments to the provided CommentedMap
+    to describe each field's type and default value. None set values that cannot be transferred through the config/args are commented out.
+
+    Args:
+        cls: The class to add comments for.
+        data (ruamel.yaml.CommentedMap): The CommentedMap where YAML data will be stored.
+        _addendum (str): A string to prepend to each YAML key.
+        _loop_detection (Optional[list]): Internal parameter for detecting recursive data classes.
+    """
     ### Add Comments ###
     # split the kwargs into native ones and new ones
     _loop_detection = [cls] if _loop_detection is None else [*_loop_detection, cls]
@@ -247,8 +276,22 @@ def add_comments_to_yaml(cls, data: ruamel.yaml.CommentedMap, _addendum: str = "
 
 @dataclass()
 class Class_to_ArgParse:
+    """
+    A data class representing an entity that can be converted to an ArgumentParser.
+    """
+
     @classmethod
     def get_opt(cls, parser: None | ArgumentParser = None, default_config=None):
+        """
+        Get an instance of the class based on arguments parsed from command line.
+
+        Args:
+            parser (Optional[ArgumentParser]): An existing ArgumentParser instance. If None, a new ArgumentParser will be created.
+            default_config: Default configuration file.
+
+        Returns:
+            Class_to_ArgParse: An instance of the class with attributes set based on parsed arguments.
+        """
         _checks = {}
         _enum = {}
 
@@ -258,6 +301,18 @@ class Class_to_ArgParse:
 
     @classmethod
     def from_kwargs(cls, _checks=None, _enum=None, _class_mapping=None, **kwargs):
+        """
+        Create an instance of the class from keyword arguments.
+
+        Args:
+            _checks: Internal parameter for checking arguments.
+            _enum: Internal parameter for handling Enum types.
+            _class_mapping: Internal parameter for mapping class names.
+            **kwargs: Keyword arguments to initialize the class instance.
+
+        Returns:
+            Class_to_ArgParse: An instance of the class with attributes set based on provided keyword arguments.
+        """
         # fetch the constructor's signature
         if _class_mapping is None:
             _class_mapping = {}
@@ -325,30 +380,31 @@ class Class_to_ArgParse:
         return state
 
     def save_config(self, outfile: str | Path, default_flow_style: None | bool = None):
+        """
+        Save the configuration to a YAML file.
+
+        Args:
+            outfile (str or Path): The path to the output YAML file.
+            default_flow_style (None or bool): If True, use the flow style. If False, use the block style. If None, use the default style.
+        """
         import ruamel.yaml as ryaml
+
+        # Create an in-memory stream
+        yaml_stream = StringIO()
         # import yaml
-
+        y = ryaml.YAML()  # typ="safe", pure=True
+        y.default_flow_style = default_flow_style
+        data = ruamel.yaml.CommentedMap()
+        convert_obj_to_yaml(self, data)
+        add_comments_to_yaml(self.__class__, data)
         with open(outfile, "w") as out_file_stream:
-            y = ryaml.YAML()  # typ="safe", pure=True
-            y.default_flow_style = default_flow_style
-            data = ruamel.yaml.CommentedMap()
-            convert_obj_to_yaml(self, data)
-            add_comments_to_yaml(self.__class__, data)
-            y.dump(data, out_file_stream)
-        # Could not find to use "" for strings instead of ''.
-        # So we have this solution
-        # Thanks I hate it. (pyYaml need "" or it would cas 'x' to "'x'" instead of "x")
-        with open(outfile) as out_file_stream:
-            data = out_file_stream.read()
-        with open(outfile, "w") as out_file_stream:
-            out_file_stream.write(data.replace("'", '"'))
-
-
-# data = ruamel.yaml.round_trip_load(outfile)
-
-# data["test1"].yaml_set_start_comment("before test2", indent=2)
-# data["test1"]["test2"].yaml_set_start_comment("after test2", indent=4)
-# ruamel.yaml.round_trip_dump(data, sys.stdout)
-
-
-# ryaml.safe_dump(asdict(self), outfile, default_flow_style=default_flow_style, sort_keys=False)
+            # Dump YAML to the in-memory stream
+            y.dump(data, yaml_stream)
+            # Get the YAML string from the in-memory stream
+            yaml_str = yaml_stream.getvalue()
+            # Replace single quotes with double quotes, so pyyaml can read it.
+            yaml_str = yaml_str.replace("'", '"')
+            # Write the modified YAML string to the file
+            out_file_stream.write(yaml_str)
+        yaml_stream.close()
+        del yaml_stream

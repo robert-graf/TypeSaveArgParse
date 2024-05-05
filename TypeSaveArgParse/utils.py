@@ -16,6 +16,12 @@ def class_to_str(s):
     return str(s).replace("<class '", "").replace("'>", "")
 
 
+def enum_to_str(i):
+    if isinstance(i, Enum):
+        return i.name
+    return i
+
+
 def len_checker(s, num_elements, org_annotation, can_be_none, name):
     if can_be_none and s is None:
         return s

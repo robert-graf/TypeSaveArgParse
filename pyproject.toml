@@ -9,7 +9,7 @@ readme = "README.md"
 packages = [{ include = "TypeSaveArgParse" }]
 
 [tool.poetry.dependencies]
-python = "^3.10 || ^3.11 || ^3.12"
+python = "^3.10 || ^3.11 || ^3.12 || ^3.13 || ^3.14 || ^3.15"
 pathlib = "*"
 ConfigArgParse = "*"
 PyYAML = "*"
@@ -107,6 +107,7 @@ select = [
 
 
 ignore = [
+    "C901",
     "F401",
     "BLE001",
     "E501",
