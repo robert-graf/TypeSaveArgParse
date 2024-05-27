@@ -161,3 +161,7 @@ cython_debug/
 
 myConfig.yaml
 test.yaml
+!.github/workflows/linter.yml  
+!.github/workflows/python-publish.yml	
+!.github/workflows/tests.yml
+
