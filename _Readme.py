@@ -12,7 +12,7 @@ class Dummy_Enum(Enum):
     THIRD = auto()
 
 
-# 1.  Make a data class that inherits from TypeSaveArgParse.Class_to_ArgParse
+# 1. Make a data class that inherits from TypeSaveArgParse.Class_to_ArgParse
 @dataclass
 class BASE_CASES(Class_to_ArgParse):
     """
