@@ -1,5 +1,4 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent))
-from autoargs import Class_to_ArgParse
+from TypeSaveArgParse.autoargs import Class_to_ArgParse
