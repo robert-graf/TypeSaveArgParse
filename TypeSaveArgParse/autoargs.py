@@ -16,14 +16,7 @@ try:
 except Exception:
     doc_parse = None
 
-from TypeSaveArgParse.utils import (
-    cast_all,
-    class_to_str,
-    enum_to_str,
-    extract_sub_annotation,
-    len_checker,
-    translation_enum_to_str,
-)
+from TypeSaveArgParse.utils import cast_all, class_to_str, enum_to_str, extract_sub_annotation, len_checker, translation_enum_to_str
 
 config_help = "config file path"
 
