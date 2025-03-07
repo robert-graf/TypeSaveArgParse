@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import NoneType
+from typing import Optional
 from unittest.mock import patch
 
 import configargparse as argparse
@@ -36,8 +36,8 @@ class BASE_CASES(Class_to_ArgParse):
     f: float = -0.3
     enum: Dummy_Enum = Dummy_Enum.ONE
     enum_tuple: tuple[Dummy_Enum, Dummy_Enum] = field(default_factory=lambda: (Dummy_Enum.ONE, Dummy_Enum.ONE))
-    z: int | None = None
-    p: Path | None = None
+    z: Optional[int] = None
+    p: Optional[Path] = None
     l_s: list[str] = field(default_factory=lambda: ["Wam", "Bam"])
     l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
     tup: tuple[str, ...] = field(default_factory=tuple)

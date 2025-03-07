@@ -9,7 +9,7 @@ readme = "README.md"
 packages = [{ include = "TypeSaveArgParse" }]
 
 [tool.poetry.dependencies]
-python = "^3.10 || ^3.11 || ^3.12 || ^3.13 || ^3.14 || ^3.15"
+python = "^3.9 || ^3.10 || ^3.11 || ^3.12 || ^3.13 || ^3.14 || ^3.15"
 pathlib = "*"
 ConfigArgParse = "*"
 PyYAML = "*"
@@ -130,6 +130,7 @@ ignore = [
     "SIM118",  # dictionay keys
     "N802",    # function name lowercase
     "E721",
+    "UP007", # | operator python 3.9
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

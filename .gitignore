@@ -165,3 +165,4 @@ test.yaml
 !.github/workflows/python-publish.yml	
 !.github/workflows/tests.yml
 
+poetry.lock
