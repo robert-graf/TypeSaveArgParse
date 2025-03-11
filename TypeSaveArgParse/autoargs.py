@@ -93,7 +93,8 @@ def data_class_to_arg_parse(
         annotation = parameters[name].annotation
         # Handling :A |B |...| None (None means Optional argument)
         annotations = []
-        if get_origin(annotation) == Union:
+
+        if (hasattr(types, "UnionType") and get_origin(annotation) == types.UnionType) or get_origin(annotation) == Union:  # :
             for i in get_args(annotation):
                 if i == type(None):
                     can_be_none = True

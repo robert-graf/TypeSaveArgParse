@@ -2,6 +2,7 @@
 # coverage run -m unittest
 # coverage report
 # coverage html
+import platform
 import random
 import sys
 import unittest
@@ -15,24 +16,12 @@ import configargparse as argparse
 
 sys.path.append(str(Path(__file__).parent.parent.parent / "TypeSaveArgParse"))
 
+
 from TypeSaveArgParse import Class_to_ArgParse
 
 DEFAULT_STR = str(random.randint(0, 1000))
 DEFAULT_INT = random.randint(-1000, 1000)
 DEFAULT_FLOAT = random.random()
-
-
-@dataclass
-class BASE_CASES(Class_to_ArgParse):
-    x: str = DEFAULT_STR
-    y: int = DEFAULT_INT
-    f: float = DEFAULT_FLOAT
-    z: Optional[int] = None
-    p: Optional[Path] = None
-    l_s: list[str] = field(default_factory=list)
-    l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
-    tup: tuple[str, ...] = field(default_factory=tuple)
-    set_: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -50,11 +39,45 @@ class Dummy_Enum(Enum):
     THIRD = auto()
 
 
-@dataclass
-class ENUM_CASES(Class_to_ArgParse):
-    enu: Dummy_Enum = Dummy_Enum.ONE
-    enu_list: Optional[list[Dummy_Enum]] = None
-    enu_list2: list[Dummy_Enum] = field(default_factory=list)
+py_version = int(platform.python_version().split(".")[1])
+if py_version <= 9:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):  # type: ignore
+        x: str = DEFAULT_STR
+        y: int = DEFAULT_INT
+        f: float = DEFAULT_FLOAT
+        z: Optional[int] = None
+        p: Optional[Path] = None
+        l_s: list[str] = field(default_factory=list)
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_: set[str] = field(default_factory=set)
+
+    @dataclass
+    class ENUM_CASES(Class_to_ArgParse):  # type: ignore
+        enu: Dummy_Enum = Dummy_Enum.ONE
+        enu_list: Optional[list[Dummy_Enum]] = None
+        enu_list2: list[Dummy_Enum] = field(default_factory=list)
+else:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):
+        x: str = DEFAULT_STR
+        y: int = DEFAULT_INT
+        f: float = DEFAULT_FLOAT
+        z: int | None = None
+        p: Path | None = None
+        l_s: list[str] = field(default_factory=list)
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_: set[str] = field(default_factory=set)
+
+    @dataclass
+    class ENUM_CASES(Class_to_ArgParse):
+        enu: Dummy_Enum = Dummy_Enum.ONE
+        enu_list: list[Dummy_Enum] | None = None
+        enu_list2: list[Dummy_Enum] = field(default_factory=list)
 
 
 def assert_(value, x, type_):
