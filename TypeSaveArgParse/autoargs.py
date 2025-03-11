@@ -6,7 +6,7 @@ from functools import partial
 from inspect import signature
 from io import StringIO
 from pathlib import Path
-from typing import get_args, get_origin
+from typing import Optional, Union, get_args, get_origin
 
 import ruamel.yaml
 from configargparse import ArgumentParser
@@ -23,7 +23,7 @@ config_help = "config file path"
 
 def data_class_to_arg_parse(
     cls,
-    parser: None | ArgumentParser = None,
+    parser: Optional[ArgumentParser] = None,
     default_config=None,
     _addendum: str = "",
     _checks=None,
@@ -93,9 +93,9 @@ def data_class_to_arg_parse(
         annotation = parameters[name].annotation
         # Handling :A |B |...| None (None means Optional argument)
         annotations = []
-        if get_origin(annotation) == types.UnionType:
+        if get_origin(annotation) == Union:
             for i in get_args(annotation):
-                if i == types.NoneType:
+                if i == type(None):
                     can_be_none = True
                 else:
                     annotations.append(i)
@@ -231,9 +231,9 @@ def add_comments_to_yaml(cls, data: ruamel.yaml.CommentedMap, _addendum: str = "
 
         # Handling :A |B |...| None (None means Optional argument)
         annotations = []
-        if get_origin(annotation) == types.UnionType:
+        if get_origin(annotation) == Union:
             for i in get_args(annotation):
-                if i != types.NoneType:
+                if i != type(None):
                     annotations.append(i)
                     annotation = i
         if len(annotations) > 1:
@@ -274,7 +274,7 @@ class Class_to_ArgParse:
     """
 
     @classmethod
-    def get_opt(cls, parser: None | ArgumentParser = None, default_config=None):
+    def get_opt(cls, parser: Optional[ArgumentParser] = None, default_config=None):
         """
         Get an instance of the class based on arguments parsed from command line.
 
@@ -372,7 +372,7 @@ class Class_to_ArgParse:
                 self.__dict__[key] = state[key]
         return state
 
-    def save_config(self, outfile: str | Path, default_flow_style: None | bool = None):
+    def save_config(self, outfile: Union[str, Path], default_flow_style: Optional[bool] = None):
         """
         Save the configuration to a YAML file.
 

@@ -3,7 +3,7 @@ import sys
 import types
 from enum import Enum
 from inspect import Parameter
-from typing import get_args, get_origin
+from typing import Optional, Union, get_args, get_origin
 
 
 def translation_enum_to_str(enum: type[Enum]) -> list[str]:
@@ -41,7 +41,7 @@ def cast_if_list_to(type_, val, parameter: types.GenericAlias):
     return val
 
 
-def cast_if_enum(val, parameter: types.GenericAlias, enum: None | type):
+def cast_if_enum(val, parameter: types.GenericAlias, enum: Optional[type]):
     # Cast Str to Enum
     if enum is None:
         return val
@@ -59,7 +59,7 @@ def extract_sub_annotation(annotation):
     had_ellipsis = False
     has_optional = False
     for i in get_args(annotation):
-        if i == types.NoneType:
+        if i == type(None):
             has_optional = True
         elif i == Ellipsis:
             had_ellipsis = True
@@ -70,7 +70,7 @@ def extract_sub_annotation(annotation):
 
 
 def _cast_all(val, annotation: types.GenericAlias, enum):  # -> tuple[Any, ...] | set[Any] | Any | list[Any]:
-    if get_origin(annotation) == types.UnionType:
+    if get_origin(annotation) == Union:
         annotation = extract_sub_annotation(annotation)[0]
 
     if isinstance(val, list):

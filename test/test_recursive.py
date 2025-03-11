@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from types import NoneType
+from typing import Optional
 from unittest.mock import patch
 
 import configargparse as argparse
@@ -43,8 +43,8 @@ class BASE_CASES(Class_to_ArgParse):
     x: str = DEFAULT_STR
     y: int = DEFAULT_INT
     f: float = DEFAULT_FLOAT
-    z: int | None = None
-    p: Path | None = None
+    z: Optional[int] = None
+    p: Optional[Path] = None
     l_s: list[str] = field(default_factory=list)
     l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
     tup: tuple[str, ...] = field(default_factory=tuple)
@@ -112,7 +112,7 @@ class ENUM_CASES(Class_to_ArgParse):
     """
 
     enu: Dummy_Enum = Dummy_Enum.ONE
-    enu_list: list[Dummy_Enum] | None = None
+    enu_list: Optional[list[Dummy_Enum]] = None
     enu_list2: list[Dummy_Enum] = field(default_factory=list)
 
 
@@ -141,7 +141,7 @@ def err(idx):
     raise ValueError(idx)
 
 
-def fetch_exit(args: list | None = None, fun=lambda: BASE_CASES().get_opt()):
+def fetch_exit(args: Optional[list[str]] = None, fun=lambda: BASE_CASES().get_opt()):
     if args is None:
         args = [__file__, "--z", "C. CLark"]
     try:
