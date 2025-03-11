@@ -70,7 +70,7 @@ def extract_sub_annotation(annotation):
 
 
 def _cast_all(val, annotation: types.GenericAlias, enum):  # -> tuple[Any, ...] | set[Any] | Any | list[Any]:
-    if get_origin(annotation) == Union:
+    if is_union(annotation):
         annotation = extract_sub_annotation(annotation)[0]
 
     if isinstance(val, list):
@@ -87,3 +87,7 @@ def cast_all(val, parameter: Parameter, enum):
         return val
     val_out = _cast_all(val, parameter.annotation, enum)
     return val_out
+
+
+def is_union(annotation):
+    return (hasattr(types, "UnionType") and get_origin(annotation) == types.UnionType) or get_origin(annotation) == Union

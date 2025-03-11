@@ -2,6 +2,7 @@
 # coverage run -m unittest
 # coverage report
 # coverage html
+import platform
 import random
 import sys
 import unittest
@@ -21,34 +22,103 @@ from TypeSaveArgParse import Class_to_ArgParse
 DEFAULT_STR = str(random.randint(0, 1000))
 DEFAULT_INT = random.randint(-1000, 1000)
 DEFAULT_FLOAT = random.random()
+py_version = int(platform.python_version().split(".")[1])
 
 
-@dataclass
-class BASE_CASES(Class_to_ArgParse):
-    """
-    Class representing base cases for argument parsing.
+class Dummy_Enum(Enum):
+    ONE = auto()
+    SECOND = auto()
+    THIRD = auto()
 
-    Attributes:
-        x (str): String attribute with default value DEFAULT_STR.
-        y (int): Integer attribute with default value DEFAULT_INT.
-        f (float): Float attribute with default value DEFAULT_FLOAT.
-        z (Optional[int]): Optional integer attribute.
-        p (Optional[Path]): Optional Path attribute.
-        l_s (List[str]): List of strings.
-        l_i (List[int]): List of integers with default value [1, 2, 3].
-        tup (Tuple[str, ...]): Tuple of strings.
-        set_ (Set[str]): Set of strings.
-    """
 
-    x: str = DEFAULT_STR
-    y: int = DEFAULT_INT
-    f: float = DEFAULT_FLOAT
-    z: Optional[int] = None
-    p: Optional[Path] = None
-    l_s: list[str] = field(default_factory=list)
-    l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
-    tup: tuple[str, ...] = field(default_factory=tuple)
-    set_: set[str] = field(default_factory=set)
+if py_version <= 9:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):  # type: ignore
+        """
+        Class representing base cases for argument parsing.
+
+        Attributes:
+            x (str): String attribute with default value DEFAULT_STR.
+            y (int): Integer attribute with default value DEFAULT_INT.
+            f (float): Float attribute with default value DEFAULT_FLOAT.
+            z (Optional[int]): Optional integer attribute.
+            p (Optional[Path]): Optional Path attribute.
+            l_s (List[str]): List of strings.
+            l_i (List[int]): List of integers with default value [1, 2, 3].
+            tup (Tuple[str, ...]): Tuple of strings.
+            set_ (Set[str]): Set of strings.
+        """
+
+        x: str = DEFAULT_STR
+        y: int = DEFAULT_INT
+        f: float = DEFAULT_FLOAT
+        z: Optional[int] = None
+        p: Optional[Path] = None
+        l_s: list[str] = field(default_factory=list)
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_: set[str] = field(default_factory=set)
+
+    @dataclass
+    class ENUM_CASES(Class_to_ArgParse):  # type: ignore
+        """
+        Class representing enum cases for argument parsing.
+
+        Attributes:
+            enu (Dummy_Enum): Enum attribute with default value Dummy_Enum.ONE.
+            enu_list (Optional[List[Dummy_Enum]]): Optional list of enum instances.
+            enu_list2 (List[Dummy_Enum]): List of enum instances.
+        """
+
+        enu: Dummy_Enum = Dummy_Enum.ONE
+        enu_list: Optional[list[Dummy_Enum]] = None
+        enu_list2: list[Dummy_Enum] = field(default_factory=list)
+
+
+else:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):
+        """
+        Class representing base cases for argument parsing.
+
+        Attributes:
+            x (str): String attribute with default value DEFAULT_STR.
+            y (int): Integer attribute with default value DEFAULT_INT.
+            f (float): Float attribute with default value DEFAULT_FLOAT.
+            z (Optional[int]): Optional integer attribute.
+            p (Optional[Path]): Optional Path attribute.
+            l_s (List[str]): List of strings.
+            l_i (List[int]): List of integers with default value [1, 2, 3].
+            tup (Tuple[str, ...]): Tuple of strings.
+            set_ (Set[str]): Set of strings.
+        """
+
+        x: str = DEFAULT_STR
+        y: int = DEFAULT_INT
+        f: float = DEFAULT_FLOAT
+        z: int | None = None
+        p: Path | None = None
+        l_s: list[str] = field(default_factory=list)
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_: set[str] = field(default_factory=set)
+
+    @dataclass
+    class ENUM_CASES(Class_to_ArgParse):
+        """
+        Class representing enum cases for argument parsing.
+
+        Attributes:
+            enu (Dummy_Enum): Enum attribute with default value Dummy_Enum.ONE.
+            enu_list (Optional[List[Dummy_Enum]]): Optional list of enum instances.
+            enu_list2 (List[Dummy_Enum]): List of enum instances.
+        """
+
+        enu: Dummy_Enum = Dummy_Enum.ONE
+        enu_list: list[Dummy_Enum] | None = None
+        enu_list2: list[Dummy_Enum] = field(default_factory=list)
 
 
 @dataclass
@@ -83,37 +153,6 @@ class TUP_CASES(Class_to_ArgParse):
     tup2: tuple[int, int] = field(default_factory=tuple)
     tup3: tuple[int, int, int] = field(default_factory=tuple)
     tup4: tuple[int, int, int, int] = field(default_factory=tuple)
-
-
-class Dummy_Enum(Enum):
-    """
-    Class representing enum cases for argument parsing.
-
-    Attributes:
-        enu (Dummy_Enum): Enum attribute with default value Dummy_Enum.ONE.
-        enu_list (Optional[List[Dummy_Enum]]): Optional list of enum instances.
-        enu_list2 (List[Dummy_Enum]): List of enum instances.
-    """
-
-    ONE = auto()
-    SECOND = auto()
-    THIRD = auto()
-
-
-@dataclass
-class ENUM_CASES(Class_to_ArgParse):
-    """
-    Class representing enum cases for argument parsing.
-
-    Attributes:
-        enu (Dummy_Enum): Enum attribute with default value Dummy_Enum.ONE.
-        enu_list (Optional[List[Dummy_Enum]]): Optional list of enum instances.
-        enu_list2 (List[Dummy_Enum]): List of enum instances.
-    """
-
-    enu: Dummy_Enum = Dummy_Enum.ONE
-    enu_list: Optional[list[Dummy_Enum]] = None
-    enu_list2: list[Dummy_Enum] = field(default_factory=list)
 
 
 @dataclass()

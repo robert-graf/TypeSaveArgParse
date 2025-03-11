@@ -16,7 +16,15 @@ try:
 except Exception:
     doc_parse = None
 
-from TypeSaveArgParse.utils import cast_all, class_to_str, enum_to_str, extract_sub_annotation, len_checker, translation_enum_to_str
+from TypeSaveArgParse.utils import (
+    cast_all,
+    class_to_str,
+    enum_to_str,
+    extract_sub_annotation,
+    is_union,
+    len_checker,
+    translation_enum_to_str,
+)
 
 config_help = "config file path"
 
@@ -93,7 +101,8 @@ def data_class_to_arg_parse(
         annotation = parameters[name].annotation
         # Handling :A |B |...| None (None means Optional argument)
         annotations = []
-        if get_origin(annotation) == Union:
+
+        if is_union(annotation):  # :
             for i in get_args(annotation):
                 if i == type(None):
                     can_be_none = True
@@ -231,7 +240,7 @@ def add_comments_to_yaml(cls, data: ruamel.yaml.CommentedMap, _addendum: str = "
 
         # Handling :A |B |...| None (None means Optional argument)
         annotations = []
-        if get_origin(annotation) == Union:
+        if is_union(annotation):
             for i in get_args(annotation):
                 if i != type(None):
                     annotations.append(i)
