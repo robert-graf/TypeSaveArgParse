@@ -2,6 +2,7 @@
 # coverage run -m unittest
 # coverage report
 # coverage html
+import platform
 import random
 import sys
 import unittest
@@ -22,6 +23,8 @@ DEFAULT_STR = str(random.randint(0, 1000))
 DEFAULT_INT = random.randint(-1000, 1000)
 DEFAULT_FLOAT = random.random()
 
+py_version = int(platform.python_version().split(".")[1])
+
 
 class Dummy_Enum(Enum):
     ONE = auto()
@@ -29,21 +32,40 @@ class Dummy_Enum(Enum):
     THIRD = auto()
 
 
-@dataclass
-class BASE_CASES(Class_to_ArgParse):
-    x: str = ""
-    y: int = -1000000
-    f: float = -0.3
-    enum: Dummy_Enum = Dummy_Enum.ONE
-    enum_tuple: tuple[Dummy_Enum, Dummy_Enum] = field(default_factory=lambda: (Dummy_Enum.ONE, Dummy_Enum.ONE))
-    z: Optional[int] = None
-    p: Optional[Path] = None
-    l_s: list[str] = field(default_factory=lambda: ["Wam", "Bam"])
-    l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
-    tup: tuple[str, ...] = field(default_factory=tuple)
-    set_s: set[str] = field(default_factory=set)
-    set_i: set[int] = field(default_factory=set)
-    b: bool = False
+if py_version <= 9:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):  # type: ignore
+        x: str = ""
+        y: int = -1000000
+        f: float = -0.3
+        enum: Dummy_Enum = Dummy_Enum.ONE
+        enum_tuple: tuple[Dummy_Enum, Dummy_Enum] = field(default_factory=lambda: (Dummy_Enum.ONE, Dummy_Enum.ONE))
+        z: Optional[int] = None
+        p: Optional[Path] = None
+        l_s: list[str] = field(default_factory=lambda: ["Wam", "Bam"])
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_s: set[str] = field(default_factory=set)
+        set_i: set[int] = field(default_factory=set)
+        b: bool = False
+else:
+
+    @dataclass
+    class BASE_CASES(Class_to_ArgParse):
+        x: str = ""
+        y: int = -1000000
+        f: float = -0.3
+        enum: Dummy_Enum = Dummy_Enum.ONE
+        enum_tuple: tuple[Dummy_Enum, Dummy_Enum] = field(default_factory=lambda: (Dummy_Enum.ONE, Dummy_Enum.ONE))
+        z: int | None = None
+        p: Path | None = None
+        l_s: list[str] = field(default_factory=lambda: ["Wam", "Bam"])
+        l_i: list[int] = field(default_factory=lambda: [1, 2, 3])
+        tup: tuple[str, ...] = field(default_factory=tuple)
+        set_s: set[str] = field(default_factory=set)
+        set_i: set[int] = field(default_factory=set)
+        b: bool = False
 
 
 class Test_save_load(unittest.TestCase):
